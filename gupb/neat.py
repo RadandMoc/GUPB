@@ -13,9 +13,11 @@ from gupb.controller.neat.neat_training.train_neat import run_neat_training
               help="Number of generations during training.")
 @click.option('--evaluator', required=True,
               help="Evaluator name added to 'create_evaluator'.") #name in neat_training/train_neat.py/get_evaluator
-def neat(neat_config: str, network_name: str, n: int, evaluator: str):
+@click.option('--update', required=False, default=0, type=int,
+              help="How often update genome fitness in turns. If less than 1, then is per all simulation.")
+def neat(neat_config: str, network_name: str, n: int, evaluator: str, update: int):
     neat_config = NeatConfig.load_neat_config(neat_config)
-    winner = run_neat_training(neat_config, n, evaluator)
+    winner = run_neat_training(neat_config, n, evaluator, update)
     NeatConfig.save_winner_network(winner, network_name)
 
 

@@ -3,7 +3,7 @@ import neat
 from gupb import runner
 from gupb.controller import random
 from gupb.controller.neat.kim_dzong_neat_jr import KimDzongNeatJuniorController
-from gupb.controller.neat.neat_training.neat_evaluator import NeatEvaluatorV1, NeatEvaluator
+from gupb.controller.neat.neat_training.neat_evaluator import NeatEvaluatorV1, NeatEvaluator, NeatEvaluatorVT1
 from gupb.model import games
 
 
@@ -31,7 +31,14 @@ def get_evaluator(name, neat_controller, game_runner) -> NeatEvaluator:
     if name == "eval_v1":
         return NeatEvaluatorV1(
             controller=neat_controller,
-            runner=game_runner
+            runner=game_runner,
+            cumulative=False
+        )
+    elif name == "eval_vt1":
+        return NeatEvaluatorVT1(
+            controller=neat_controller,
+            runner=game_runner,
+            cumulative=False
         )
     else:
         raise ValueError(f"{name} evaluator doesn't exist")
@@ -52,11 +59,11 @@ def eval_genomes_with_evaluator(evaluator_name, genomes, config):
         genome.fitness += evaluator.calculate_score()
 
 def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=1):
-    evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
     for genome_id, genome in genomes:
         genome.fitness = 0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         neat_controller = KimDzongNeatJuniorController(net=net)
+        evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
 
         game_config = default_game_configuration(neat_controller)
         game_runner = runner.Runner(game_config)

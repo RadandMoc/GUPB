@@ -20,7 +20,7 @@ class NeatEvaluator:
 
 class NeatEvaluatorV1(NeatEvaluator):
     def __init__(self, controller: KimDzongNeatJuniorController, runner: runner.Runner, cumulative: bool):
-        super().__init__(controller, runner)
+        super().__init__(controller, runner, cumulative)
 
     @override
     def calculate_score(self,game: games.Game=None, tick_count: int=0):
@@ -46,7 +46,8 @@ class NeatEvaluatorVT1(NeatEvaluator):
         self.was_death = False
 
     @override
-    def calculate_score(self, game: games.Game, tick_count: int):
+    def calculate_score(self, game: games.Game = None, tick_count: int=1):
+        assert game is not None, "Game must be provided to calculate score"
         current_score = 0
         neat_controller = self.controller
         bonuses = self.bonuses

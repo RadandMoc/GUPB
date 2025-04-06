@@ -1,5 +1,5 @@
 import neat
-
+import random as classic_random
 from gupb import runner
 from gupb.controller import random
 from gupb.controller.neat.kim_dzong_neat_jr import KimDzongNeatJuniorController
@@ -63,12 +63,12 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
         genome.fitness = 0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         neat_controller = KimDzongNeatJuniorController(net=net)
-        evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
 
         game_config = default_game_configuration(neat_controller)
         game_runner = runner.Runner(game_config)
+        evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
         
-        arena = random.choice(game_runner.arenas)
+        arena = classic_random.choice(game_runner.arenas)
         game = games.Game(
             game_no=0,
             arena_name=arena,

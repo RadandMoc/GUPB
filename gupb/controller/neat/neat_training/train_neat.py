@@ -5,7 +5,7 @@ import neat
 from gupb import runner
 from gupb.controller import random
 from gupb.controller.neat.kim_dzong_neat_jr import KimDzongNeatJuniorController
-from gupb.controller.neat.neat_training.neat_evaluator import NeatEvaluatorV1, NeatEvaluator, NeatEvaluatorVT1, NeatEvaluatorDistance
+from gupb.controller.neat.neat_training.neat_evaluator import NeatEvaluatorV1, NeatEvaluator, NeatEvaluatorVT1
 from gupb.model import games
 
 

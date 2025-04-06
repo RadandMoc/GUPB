@@ -22,4 +22,6 @@ class NeatEvaluatorV1(NeatEvaluator):
 
     @override
     def calculate_score(self):
-        return self.runner.scores["Kim Dzong Neat v_1"]
+        score = self.runner.scores["Kim Dzong Neat v_1"]
+        print("Kim Dzong Neat v_1 score: {}".format(score))
+        return score

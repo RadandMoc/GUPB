@@ -1,9 +1,11 @@
-import neat
 import random as classic_random
+
+import neat
+
 from gupb import runner
 from gupb.controller import random
 from gupb.controller.neat.kim_dzong_neat_jr import KimDzongNeatJuniorController
-from gupb.controller.neat.neat_training.neat_evaluator import NeatEvaluatorV1, NeatEvaluator, NeatEvaluatorVT1
+from gupb.controller.neat.neat_training.neat_evaluator import NeatEvaluatorV1, NeatEvaluator, NeatEvaluatorVT1, NeatEvaluatorDistance
 from gupb.model import games
 
 
@@ -17,6 +19,14 @@ def default_game_configuration(controller: KimDzongNeatJuniorController):
             random.RandomController("Alice"),
             random.RandomController("Bob"),
             random.RandomController("Cecilia"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
+            random.RandomController("Darius"),
             random.RandomController("Darius"),
         ],
         'start_balancing': False,
@@ -40,6 +50,12 @@ def get_evaluator(name, neat_controller, game_runner) -> NeatEvaluator:
             runner=game_runner,
             cumulative=False
         )
+    elif name == "eval_dist":
+        return NeatEvaluatorDistance(
+            controller=neat_controller,
+            runner=game_runner,
+            cumulative=False
+        )
     else:
         raise ValueError(f"{name} evaluator doesn't exist")
 
@@ -58,6 +74,7 @@ def eval_genomes_with_evaluator(evaluator_name, genomes, config):
 
         genome.fitness += evaluator.calculate_score()
 
+
 def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=1):
     for genome_id, genome in genomes:
         genome.fitness = 0
@@ -67,7 +84,7 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
         game_config = default_game_configuration(neat_controller)
         game_runner = runner.Runner(game_config)
         evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
-        
+
         arena = classic_random.choice(game_runner.arenas)
         game = games.Game(
             game_no=0,
@@ -75,12 +92,12 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
             to_spawn=game_runner.controllers,
         )
         tick_count = 0
-        
+
         play = True
         while play:
             game.cycle()
             tick_count += 1
-            if game.finished:
+            if check_if_alive(neat_controller, game):
                 play = False
             if tick_count % ticks_per_update == 0 or not play:
                 game_runner._last_arena = game.arena.name
@@ -88,10 +105,17 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
                 game_runner._last_initial_positions = game.initial_champion_positions
                 score = evaluator.calculate_score(game)
                 genome.fitness += score
+
         game_runner._last_arena = game.arena.name
         game_runner._last_menhir_position = game.arena.menhir_position
         game_runner._last_initial_positions = game.initial_champion_positions
 
+
+
+def check_if_alive(controller, game):
+    for champion in game.champions:
+        if champion.controller == controller:
+            return champion.alive
 
 def run_neat_training(config: neat.Config, n: int, evaluator_name: str, turns_to_update: int):
     population = neat.Population(config)

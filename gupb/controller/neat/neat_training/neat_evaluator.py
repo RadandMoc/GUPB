@@ -55,7 +55,7 @@ class NeatEvaluatorVT1(NeatEvaluator):
         cumulative = self.cumulative
 
         for champion in game.champions:
-            if champion.controller == neat_controller:
+            if champion.controller == neat_controller and champion.alive:
                 self.was_death = False
                 if cumulative:
                     current_score += tick_count * bonuses['survival']

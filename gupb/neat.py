@@ -6,16 +6,18 @@ from gupb.controller.neat.neat_training.train_neat import run_neat_training
 
 @click.command()
 @click.option('--neat_config', default='default_config',
-              help="Neat config file to load during training.")
+              help="Neat config file to load during training.") #files in neat/neat_configs
 @click.option('--network_name', default='test_network',
-              help="Neat network name that will be saved.")
+              help="Neat network name that will be saved.") #files in neat/networks
 @click.option('--n', default=2, type=int,
               help="Number of generations during training.")
 @click.option('--evaluator', required=True,
-              help="Evaluator name added to 'create_evaluator'.")
-def neat(neat_config: str, network_name: str, n: int, evaluator: str):
+              help="Evaluator name added to 'create_evaluator'.") #name in neat_training/train_neat.py/get_evaluator
+@click.option('--update', required=False, default=0, type=int,
+              help="How often update genome fitness in turns. If less than 1, then is per all simulation.")
+def neat(neat_config: str, network_name: str, n: int, evaluator: str, update: int):
     neat_config = NeatConfig.load_neat_config(neat_config)
-    winner = run_neat_training(neat_config, n, evaluator)
+    winner = run_neat_training(neat_config, n, evaluator, update)
     NeatConfig.save_winner_network(winner, network_name)
 
 

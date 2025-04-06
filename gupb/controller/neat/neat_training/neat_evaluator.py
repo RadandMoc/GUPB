@@ -23,9 +23,10 @@ class NeatEvaluatorV1(NeatEvaluator):
         super().__init__(controller, runner, cumulative)
 
     @override
-    def calculate_score(self,game: games.Game=None, tick_count: int=0):
-        return self.runner.scores["Kim Dzong Neat v_1"]
-    
+    def calculate_score(self):
+        score = self.runner.scores["Kim Dzong Neat v_1"]
+        print("Kim Dzong Neat v_1 score: {}".format(score))
+        return score
 
 class NeatEvaluatorVT1(NeatEvaluator):
     def __init__(self, controller: KimDzongNeatJuniorController, runner: runner.Runner, cumulative: bool):
@@ -54,7 +55,7 @@ class NeatEvaluatorVT1(NeatEvaluator):
         cumulative = self.cumulative
 
         for champion in game.champions:
-            if champion.controller == neat_controller:
+            if champion.controller == neat_controller and champion.alive:
                 self.was_death = False
                 if cumulative:
                     current_score += tick_count * bonuses['survival']
@@ -62,7 +63,7 @@ class NeatEvaluatorVT1(NeatEvaluator):
                     current_score += bonuses['survival']
                 current_score += champion.health * bonuses['health']
                 if hasattr(champion, 'weapon') and champion.weapon:
-                    current_score += bonuses['weapon'] 
+                    current_score += bonuses['weapon']
                     if isinstance(champion.weapon, weapons.Knife):
                         current_score += bonuses['knife']
                     elif isinstance(champion.weapon, weapons.Sword):

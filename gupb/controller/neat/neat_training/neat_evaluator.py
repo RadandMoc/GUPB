@@ -5,6 +5,7 @@ from typing_extensions import override
 from gupb import runner
 from gupb.controller.neat.kim_dzong_neat_jr import KimDzongNeatJuniorController
 from gupb.model import games, weapons
+from gupb.model.coordinates import Coords
 
 
 class NeatEvaluator:
@@ -45,6 +46,8 @@ class NeatEvaluatorVT1(NeatEvaluator):
             'scroll':0.06,
         }
         self.was_death = False
+        self.last_position = Coords(x=0, y=0)
+
 
     @override
     def calculate_score(self, game: games.Game = None, tick_count: int=1):
@@ -56,6 +59,9 @@ class NeatEvaluatorVT1(NeatEvaluator):
 
         for champion in game.champions:
             if champion.controller == neat_controller:
+                if champion.position != self.last_position:
+                    current_score += 100
+                    self.last_position = champion.position
                 self.was_death = False
                 if cumulative:
                     current_score += tick_count * bonuses['survival']

@@ -97,7 +97,7 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
         while play:
             game.cycle()
             tick_count += 1
-            if check_if_alive(neat_controller, game):
+            if not check_if_alive(neat_controller, game):
                 play = False
             if tick_count % ticks_per_update == 0 or not play:
                 game_runner._last_arena = game.arena.name

@@ -34,17 +34,16 @@ class NeatEvaluatorVT1(NeatEvaluator):
         self.bonuses = {
             'survival': 0.2,
             'health': 0.5,
-            'enemy': -0.05,
-            'death': -150,
-            'weapon': 0.1,
+            'enemy': -0.1,
+            'death': -15,
+            'weapon': 0.2,
             'knife': 0,
-            'sword': 0.05,
-            'axe': 0.06,
-            'bow':0.2,
-            'amulet':0.06,
+            'sword': 0.1,
+            'axe': 0.11,
+            'bow':0.3,
+            'amulet':0.11,
             'scroll':0.06,
         }
-        self.was_death = False
 
     @override
     def calculate_score(self, game: games.Game = None, tick_count: int=1):
@@ -53,10 +52,11 @@ class NeatEvaluatorVT1(NeatEvaluator):
         neat_controller = self.controller
         bonuses = self.bonuses
         cumulative = self.cumulative
-
+        is_alive = True
         for champion in game.champions:
-            if champion.controller == neat_controller and champion.alive:
-                self.was_death = False
+            if champion.controller == neat_controller:
+                is_alive = champion.alive
+                is_alive = False
                 if cumulative:
                     current_score += tick_count * bonuses['survival']
                 else:
@@ -78,7 +78,6 @@ class NeatEvaluatorVT1(NeatEvaluator):
                         current_score += bonuses['scroll']
             else:
                 current_score += bonuses['enemy']
-        if (not any(champion.controller == neat_controller for champion in game.champions)) and (not self.was_death):
-            self.was_death = True
+        if (not is_alive):
             current_score += bonuses['death']
         return current_score

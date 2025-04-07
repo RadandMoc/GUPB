@@ -58,7 +58,7 @@ class NeatEvaluatorVT1(NeatEvaluator):
         cumulative = self.cumulative
 
         for champion in game.champions:
-            if champion.controller == neat_controller:
+            if champion.controller == neat_controller and champion.alive:
                 if champion.position != self.last_position:
                     current_score += 100
                     self.last_position = champion.position

@@ -1,7 +1,10 @@
+from typing import Tuple
+
 from gupb import controller
 from gupb.controller.neat.model_config import NeatConfig
 from gupb.model import arenas
 from gupb.model import characters
+from gupb.model.characters import Facing
 from gupb.model.coordinates import Coords
 
 POSSIBLE_ACTIONS = [
@@ -86,11 +89,13 @@ class KimDzongNeatJuniorController(controller.Controller):
 
 
     # [czy widac mgle, ile w x od najblizszej mgly, przesuniecie y od najblizszej mgly, czy widac bron, ile w x od najblizszej broni, ile w y od najblizszej broni,
-    # czy może wykonać ruch do przodu, czy może wykonać ruch do tyłu]
+    # czy może wykonać ruch do przodu, czy może wykonać ruch w lewo, czy może wykonać ruch w prawo]
     def get_from_knowledge(self, knowledge: characters.ChampionKnowledge):
         inputs = []
         mist_effect_type = 'mist'
         self.ticks_survived_with_mist += 1
+
+        blocks = {'sea', 'wall'}
 
         my_x, my_y = knowledge.position.x, knowledge.position.y
         if self.last_position != Coords(x=my_x, y=my_y):
@@ -108,6 +113,20 @@ class KimDzongNeatJuniorController(controller.Controller):
         min_distance_loot = 46
         final_dx_loot = 23
         final_dy_loot = 23
+
+        can_go_forward = 1
+        can_go_left = 1
+        can_go_right = 1
+
+        champion_desc = knowledge.visible_tiles[knowledge.position].character
+        fwd, lft, rgt = self.get_forwards_left_right_coords(knowledge.position, champion_desc.facing)
+        if knowledge.visible_tiles[fwd].type in blocks:
+            can_go_forward = 0
+        if knowledge.visible_tiles[lft].type in blocks:
+            can_go_left = 0
+        if knowledge.visible_tiles[rgt].type in blocks:
+            can_go_right = 0
+
 
         for coord, tile in knowledge.visible_tiles.items():
             dx = abs(coord[0] - my_x)
@@ -130,7 +149,38 @@ class KimDzongNeatJuniorController(controller.Controller):
         inputs.append(is_loot)
         inputs.append(final_dx_loot / 23)
         inputs.append(final_dy_loot / 23)
+        inputs.append(can_go_forward)
+        inputs.append(can_go_left)
+        inputs.append(can_go_right)
 
 
         return inputs
 
+    def get_forwards_left_right_coords(self, position: Coords, facing: Facing) -> Tuple[Coords, Coords, Coords]:
+        """
+        Zwraca współrzędne pól: do przodu, w lewo i w prawo względem obecnej pozycji i kierunku patrzenia.
+
+        :param position: Aktualna pozycja gracza.
+        :param facing: Kierunek, w którym gracz patrzy (Facing).
+        :return: Krotka (forward, left, right) - współrzędne Coords.
+        """
+        forward = position + facing.value
+
+        turn_left = {
+            Facing.UP: Facing.LEFT,
+            Facing.DOWN: Facing.RIGHT,
+            Facing.LEFT: Facing.DOWN,
+            Facing.RIGHT: Facing.UP,
+        }
+
+        turn_right = {
+            Facing.UP: Facing.RIGHT,
+            Facing.DOWN: Facing.LEFT,
+            Facing.LEFT: Facing.UP,
+            Facing.RIGHT: Facing.DOWN,
+        }
+
+        left = position + turn_left[facing].value
+        right = position + turn_right[facing].value
+
+        return forward, left, right

@@ -14,8 +14,12 @@ class NeatEvaluator:
         self.runner = runner
         self.cumulative = cumulative
 
+    # @abstractmethod
+    # def calculate_score(self,game: games.Game=None, tick_count: int=0):
+    #     raise NotImplementedError("This method must be implemented in a subclass")
+
     @abstractmethod
-    def calculate_score(self,game: games.Game=None, tick_count: int=0):
+    def calculate_score(self):
         raise NotImplementedError("This method must be implemented in a subclass")
 
 
@@ -25,8 +29,7 @@ class NeatEvaluatorV1(NeatEvaluator):
 
     @override
     def calculate_score(self):
-        score = self.runner.scores["Kim Dzong Neat v_1"]
-        print("Kim Dzong Neat v_1 score: {}".format(score))
+        score = self.controller.fitness + self.controller.ticks_survived_with_mist
         return score
 
 class NeatEvaluatorVT1(NeatEvaluator):

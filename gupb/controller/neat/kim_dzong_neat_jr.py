@@ -7,9 +7,9 @@ from gupb.model.coordinates import Coords
 POSSIBLE_ACTIONS = [
     characters.Action.ATTACK,
     characters.Action.STEP_FORWARD,
+    characters.Action.STEP_BACKWARD,
     characters.Action.TURN_RIGHT,
     characters.Action.TURN_LEFT,
-    characters.Action.STEP_BACKWARD,
     characters.Action.STEP_LEFT,
     characters.Action.STEP_RIGHT,
     characters.Action.DO_NOTHING,
@@ -17,7 +17,7 @@ POSSIBLE_ACTIONS = [
 
 NEAT_CONFIG = NeatConfig(
     network_name="nowy_network", # ENTER NETWORK NAME
-    config_name="config_mat"
+    config_name="snake_config"
 )
 
 
@@ -27,6 +27,10 @@ class KimDzongNeatJuniorController(controller.Controller):
     def __init__(self, first_name: str = "Kim Dzong Neat v_1", net=NEAT_CONFIG.network):
         self.first_name: str = first_name
         self.net = net
+        self.ticks_survived_with_mist = 0
+        self.last_position = Coords(x=0, y=0)
+        self.fitness = 0  # Dodajemy zmienną do przechowywania wyniku fitness
+
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, KimDzongNeatJuniorController):
@@ -36,12 +40,25 @@ class KimDzongNeatJuniorController(controller.Controller):
     def __hash__(self) -> int:
         return hash(self.first_name)
 
+    def calculate_fitness_per_tick(self, action_index: int) -> int:
+        """
+        Ta funkcja będzie przydzielać różne punkty na podstawie akcji agenta.
+        """
+        fitness = 0
+        if action_index == 1 or action_index == 2 or action_index == 3:  # ATTACK
+            fitness += 1
+        # Dodaj inne akcje i przypisz im odpowiednią wartość
+        return fitness
+
     def decide(self, knowledge: characters.ChampionKnowledge) -> characters.Action:
         inputs = self.get_from_knowledge(knowledge)
         output = self.net.activate(inputs)
         best_output_value = max(output)
-        # print(output)
         best_index = output.index(best_output_value)
+        if best_index == 1 or best_index == 2:
+            self.moves += 1
+
+        self.fitness += self.calculate_fitness_per_tick(best_index)
 
         return POSSIBLE_ACTIONS[best_index]
 
@@ -49,13 +66,15 @@ class KimDzongNeatJuniorController(controller.Controller):
         '''
         Powinna byc odpowiedzialan za reakcję agenta na wynik gry ( nagradzanie lub karanie w oparciu o wynik)
         '''
-        pass
+        self.fitness += score
 
     def reset(self, game_no: int, arena_description: arenas.ArenaDescription) -> None:
         '''
         Resetujemy gdy agent zayczną nową grę
         '''
-        pass
+        self.ticks_survived_with_mist = 0
+        self.moves = 0
+        self.fitness = 0
 
     @property
     def name(self) -> str:
@@ -65,91 +84,53 @@ class KimDzongNeatJuniorController(controller.Controller):
     def preferred_tabard(self) -> characters.Tabard:
         return characters.Tabard.KIMDZONGNEAT
 
-    # def get_from_knowledge(self, knowledge: characters.ChampionKnowledge):
-    #     inputs = []
-    #
-    #     tile_type_encoding = {
-    #         'land': 1,
-    #         'sea': 2,
-    #         'wall': 3,
-    #         'forest': 4,
-    #         'menhir': 5
-    #     }
-    #
-    #     weapon_encoding = {
-    #         'knife': 1,
-    #         'sword': 2,
-    #         'bow_loaded': 3,
-    #         'bow_unloaded': 4,
-    #         'axe': 5,
-    #         'amulet': 6,
-    #         'scroll': 7,
-    #         None: 0
-    #     }
-    #
-    #     effect_encoding = {
-    #         'weapon_cut': 0,
-    #         'fire': 1,
-    #         'poison': 2
-    #     }
-    #     effect_vector_length = len(effect_encoding)
-    #
-    #     my_x, my_y = knowledge.position.x, knowledge.position.y
-    #
-    #     # Zakładamy promień widzenia 2 (czyli 5x5 wokół gracza)
-    #     for dx in range(-2, 3):
-    #         for dy in range(-2, 3):
-    #             coord = type(knowledge.position)(x=my_x + dx, y=my_y + dy)
-    #             tile = knowledge.visible_tiles.get(coord)
-    #
-    #             if tile:
-    #                 tile_type_id = tile_type_encoding.get(tile.type.lower(), 0)
-    #                 has_character = int(tile.character is not None)
-    #                 has_consumable = int(tile.consumable is not None)
-    #                 loot_id = weapon_encoding.get(tile.loot.name if tile.loot else None, 0)
-    #
-    #                 effect_vector = [0] * effect_vector_length
-    #                 for effect in tile.effects:
-    #                     effect_name = effect.type.lower()
-    #                     if effect_name in effect_encoding:
-    #                         effect_vector[effect_encoding[effect_name]] = 1
-    #             else:
-    #                 # Jeśli pole niewidoczne – zakładamy pustkę
-    #                 tile_type_id = 0
-    #                 has_character = 0
-    #                 has_consumable = 0
-    #                 loot_id = 0
-    #                 effect_vector = [0] * effect_vector_length
-    #
-    #             inputs.extend([dx, dy, tile_type_id, has_character, has_consumable, loot_id] + effect_vector)
-    #
-    #     # Dodatkowo liczba żywych championów
-    #     inputs.append(knowledge.no_of_champions_alive)
-    #
-    #     return inputs
-        # return [0, 1]
 
+    # [czy widac mgle, ile w x od najblizszej mgly, przesuniecie y od najblizszej mgly, czy widac bron, ile w x od najblizszej broni, ile w y od najblizszej broni,
+    # czy może wykonać ruch do przodu, czy może wykonać ruch do tyłu]
     def get_from_knowledge(self, knowledge: characters.ChampionKnowledge):
         inputs = []
         mist_effect_type = 'mist'
+        self.ticks_survived_with_mist += 1
 
         my_x, my_y = knowledge.position.x, knowledge.position.y
-        min_distance = float('inf')
+        if self.last_position != Coords(x=my_x, y=my_y):
+            self.last_position = Coords(x=my_x, y=my_y)
+            self.fitness += 2
+        else:
+            self.fitness -= 2
+
+        is_mist = 0
+        min_distance_mist = 46
+        final_dx_mist = 23
+        final_dy_mist = 23
+
+        is_loot = 0
+        min_distance_loot = 46
+        final_dx_loot = 23
+        final_dy_loot = 23
 
         for coord, tile in knowledge.visible_tiles.items():
-            if any(effect.type.lower() == mist_effect_type for effect in tile.effects):
-                dx = abs(coord.x - my_x)
-                dy = abs(coord.y - my_y)
-                distance = dx + dy  # metryka Manhattan
-                if distance < min_distance:
-                    min_distance = distance
+            dx = abs(coord[0] - my_x)
+            dy = abs(coord[1] - my_y)
+            distance = dx + dy  # metryka Manhattan
+            if any(effect.type.lower() == mist_effect_type for effect in tile.effects) and distance < min_distance_mist:
+                is_mist = 1
+                final_dx_mist = my_x - coord[0]
+                final_dy_mist = my_y - coord[1]
+                min_distance_mist = distance
+            if tile.loot is not None and distance < min_distance_loot:
+                is_loot = 1
+                final_dx_loot = my_x - coord[0]
+                final_dy_loot = my_y - coord[1]
+                min_distance_mist = distance
 
-        # Jeśli nie znaleziono mgły w zasięgu – zwróć jakąś dużą wartość (np. 10)
-        if min_distance == float('inf'):
-            min_distance = 1000.0
+        inputs.append(is_mist)
+        inputs.append(final_dx_mist / 23)
+        inputs.append(final_dy_mist / 23)
+        inputs.append(is_loot)
+        inputs.append(final_dx_loot / 23)
+        inputs.append(final_dy_loot / 23)
 
-        # Możesz też rozważyć normalizację np. do przedziału [0, 1]
-        inputs.append(min_distance / 10.0)
 
         return inputs
 

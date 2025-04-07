@@ -3,6 +3,7 @@ import collections
 from dataclasses import dataclass
 import logging
 import random
+from logging import disable
 from typing import Any, List, Optional
 
 from tqdm import trange
@@ -35,7 +36,7 @@ class Runner:
         self._last_initial_positions: Optional[list[coordinates.Coords]] = None
 
     def run(self) -> None:
-        for i in trange(self.runs_no, desc="Playing games"):
+        for i in trange(self.runs_no, desc="Playing games", disable=True):
             verbose_logger.info(f"Starting game number {i + 1}.")
             GameStartReport(i + 1).log(logging.INFO)
             self.run_game(i)

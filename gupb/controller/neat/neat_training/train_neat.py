@@ -17,16 +17,16 @@ def default_game_configuration(controller: KimDzongNeatJuniorController):
         'controllers': [
             controller,
             random.RandomController("Alice"),
-            random.RandomController("Bob"),
-            random.RandomController("Cecilia"),
-            random.RandomController("Darius"),
-            random.RandomController("Darius1"),
-            random.RandomController("Darius2"),
-            random.RandomController("Darius3"),
-            random.RandomController("Darius4"),
-            random.RandomController("Darius5"),
-            random.RandomController("Darius6"),
-            random.RandomController("Darius7"),
+            # random.RandomController("Bob"),
+            # random.RandomController("Cecilia"),
+            # random.RandomController("Darius"),
+            # random.RandomController("Darius1"),
+            # random.RandomController("Darius2"),
+            # random.RandomController("Darius3"),
+            # random.RandomController("Darius4"),
+            # random.RandomController("Darius5"),
+            # random.RandomController("Darius6"),
+            # random.RandomController("Darius7"),
         ],
         'start_balancing': False,
         'visualise': False,
@@ -55,6 +55,7 @@ def get_evaluator(name, neat_controller, game_runner) -> NeatEvaluator:
 
 def eval_genomes_with_evaluator(evaluator_name, genomes, config):
     for genome_id, genome in genomes:
+        # print(genome_id, genome)
         genome.fitness = 0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         neat_controller = KimDzongNeatJuniorController(net=net)
@@ -66,7 +67,26 @@ def eval_genomes_with_evaluator(evaluator_name, genomes, config):
         evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
 
         genome.fitness += evaluator.calculate_score()
+        # print(genome_id, genome.fitness)
 
+
+def check_if_alive(controller, game):
+    for champion in game.champions:
+        if champion.controller == controller:
+            return champion.alive
+
+
+def run_neat_training(config: neat.Config, n: int, evaluator_name: str, turns_to_update: int):
+    population = neat.Population(config)
+    population.add_reporter(neat.StdOutReporter(True))
+    population.add_reporter(neat.StatisticsReporter())
+
+    if turns_to_update < 1:
+        eval_genomes = lambda genomes, neat_config: eval_genomes_with_evaluator(evaluator_name, genomes, neat_config)
+    else:
+        eval_genomes = lambda genomes, neat_config: eval_genomes_with_by_tick(evaluator_name, genomes, neat_config, turns_to_update)
+    winner = population.run(eval_genomes, n)
+    return winner
 
 def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=1):
     for genome_id, genome in genomes:
@@ -90,34 +110,9 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
         while play:
             game.cycle()
             tick_count += 1
-            if check_if_alive(neat_controller, game):
+            if not check_if_alive(neat_controller, game):
                 play = False
             if tick_count % ticks_per_update == 0 or not play:
-                game_runner._last_arena = game.arena.name
-                game_runner._last_menhir_position = game.arena.menhir_position
-                game_runner._last_initial_positions = game.initial_champion_positions
-                score = evaluator.calculate_score(game)
-                genome.fitness += score
+                # score = evaluator.calculate_score(game)
+                genome.fitness = evaluator.calculate_score()
 
-        game_runner._last_arena = game.arena.name
-        game_runner._last_menhir_position = game.arena.menhir_position
-        game_runner._last_initial_positions = game.initial_champion_positions
-
-
-
-def check_if_alive(controller, game):
-    for champion in game.champions:
-        if champion.controller == controller:
-            return champion.alive
-
-def run_neat_training(config: neat.Config, n: int, evaluator_name: str, turns_to_update: int):
-    population = neat.Population(config)
-    population.add_reporter(neat.StdOutReporter(True))
-    population.add_reporter(neat.StatisticsReporter())
-
-    if turns_to_update < 1:
-        eval_genomes = lambda genomes, neat_config: eval_genomes_with_evaluator(evaluator_name, genomes, neat_config)
-    else:
-        eval_genomes = lambda genomes, neat_config: eval_genomes_with_by_tick(evaluator_name, genomes, neat_config, turns_to_update)
-    winner = population.run(eval_genomes, n)
-    return winner

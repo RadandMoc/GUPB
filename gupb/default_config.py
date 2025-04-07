@@ -4,21 +4,22 @@ from gupb.controller.neat.kim_dzong_neat_jr import KimDzongNeatJuniorController
 
 keyboard_controller = keyboard.KeyboardController()
 
+neat = KimDzongNeatJuniorController()
+
 CONFIGURATION = {
     'arenas': [
         'ordinary_chaos'
     ],
     'controllers': [
-        keyboard_controller,
+        neat,
         random.RandomController("Alice"),
         random.RandomController("Bob"),
         random.RandomController("Cecilia"),
         random.RandomController("Darius"),
-        KimDzongNeatJuniorController(),
     ],
     'start_balancing': False,
     'visualise': True,
-    'show_sight': keyboard_controller,
+    'show_sight': neat,
     'runs_no': 1,
     'profiling_metrics': [],
 }

@@ -104,7 +104,7 @@ def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=
                 game_runner._last_arena = game.arena.name
                 game_runner._last_menhir_position = game.arena.menhir_position
                 game_runner._last_initial_positions = game.initial_champion_positions
-                score = evaluator.calculate_score(game, ticks_per_update)
+                score = evaluator.calculate_score(game, tick_count)
                 genome.fitness += score
 
         game_runner._last_arena = game.arena.name

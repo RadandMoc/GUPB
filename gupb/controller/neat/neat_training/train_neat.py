@@ -16,6 +16,7 @@ def default_game_configuration(controller: KimDzongNeatJuniorController):
         ],
         'controllers': [
             controller,
+            KimDzongNeatJuniorController(),
             random.RandomController("Alice"),
             random.RandomController("Bob"),
             random.RandomController("Cecilia"),

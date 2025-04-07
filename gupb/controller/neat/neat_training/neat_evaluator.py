@@ -28,22 +28,9 @@ class NeatEvaluatorV1(NeatEvaluator):
         print("Kim Dzong Neat v_1 score: {}".format(score))
         return score
 
-class NeatEvaluatorVT1(NeatEvaluator):
+class NeatEvaluatorVTScheme(NeatEvaluator):
     def __init__(self, controller: KimDzongNeatJuniorController, runner: runner.Runner, cumulative: bool):
         super().__init__(controller, runner, cumulative)
-        self.bonuses = {
-            'survival': 0.2,
-            'health': 0.5,
-            'enemy': -0.1,
-            'death': -15,
-            'weapon': 0.2,
-            'knife': 0,
-            'sword': 0.1,
-            'axe': 0.11,
-            'bow':0.3,
-            'amulet':0.11,
-            'scroll':0.06,
-        }
 
     @override
     def calculate_score(self, game: games.Game = None, tick_count: int=1):
@@ -81,3 +68,24 @@ class NeatEvaluatorVT1(NeatEvaluator):
         if (not is_alive):
             current_score += bonuses['death']
         return current_score
+
+class NeatEvaluatorVT1(NeatEvaluatorVTScheme):
+    def __init__(self, controller: KimDzongNeatJuniorController, runner: runner.Runner, cumulative: bool):
+        super().__init__(controller, runner, cumulative)
+        self.bonuses = {
+            'survival': 3,
+            'health': 2.5,
+            'enemy': -0.08,
+            'death': -15,
+            'weapon': 0.2,
+            'knife': 0,
+            'sword': 0.1,
+            'axe': 0.11,
+            'bow':0.3,
+            'amulet':0.11,
+            'scroll':0.06,
+        }
+
+    @override
+    def calculate_score(self, game: games.Game = None, tick_count: int=1):
+        return super().calculate_score(game, tick_count)

@@ -40,30 +40,34 @@ class NeatEvaluatorVTScheme(NeatEvaluator):
         bonuses = self.bonuses
         cumulative = self.cumulative
         is_alive = True
+        menhir_position = game.arena.menhir_position
         for champion in game.champions:
             if champion.controller == neat_controller:
                 is_alive = champion.alive
-                is_alive = False
-                if cumulative:
-                    current_score += tick_count * bonuses['survival']
-                else:
-                    current_score += bonuses['survival']
-                current_score += champion.health * bonuses['health']
-                if hasattr(champion, 'weapon') and champion.weapon:
-                    current_score += bonuses['weapon']
-                    if isinstance(champion.weapon, weapons.Knife):
-                        current_score += bonuses['knife']
-                    elif isinstance(champion.weapon, weapons.Sword):
-                        current_score += bonuses['sword']
-                    elif isinstance(champion.weapon, weapons.Axe):
-                        current_score += bonuses['axe']
-                    elif isinstance(champion.weapon, weapons.Bow):
-                        current_score += bonuses['bow']
-                    elif isinstance(champion.weapon, weapons.Amulet):
-                        current_score += bonuses['amulet']
-                    elif isinstance(champion.weapon, weapons.Scroll):
-                        current_score += bonuses['scroll']
-            else:
+                if is_alive:
+                    if cumulative:
+                        current_score += tick_count * bonuses['survival']
+                    else:
+                        current_score += bonuses['survival']
+                    distance = ((champion.position.x - menhir_position.x) ** 2 + 
+                                (champion.position.y - menhir_position.y) ** 2) ** 0.5
+                    current_score += bonuses['distance'] / (distance + 1)  
+                    current_score += champion.health * bonuses['health']
+                    if hasattr(champion, 'weapon') and champion.weapon:
+                        current_score += bonuses['weapon']
+                        if isinstance(champion.weapon, weapons.Knife):
+                            current_score += bonuses['knife']
+                        elif isinstance(champion.weapon, weapons.Sword):
+                            current_score += bonuses['sword']
+                        elif isinstance(champion.weapon, weapons.Axe):
+                            current_score += bonuses['axe']
+                        elif isinstance(champion.weapon, weapons.Bow):
+                            current_score += bonuses['bow']
+                        elif isinstance(champion.weapon, weapons.Amulet):
+                            current_score += bonuses['amulet']
+                        elif isinstance(champion.weapon, weapons.Scroll):
+                            current_score += bonuses['scroll']
+            elif champion.alive:
                 current_score += bonuses['enemy']
         if (not is_alive):
             current_score += bonuses['death']
@@ -84,6 +88,29 @@ class NeatEvaluatorVT1(NeatEvaluatorVTScheme):
             'bow':0.3,
             'amulet':0.11,
             'scroll':0.06,
+            'distance':75,
+        }
+
+    @override
+    def calculate_score(self, game: games.Game = None, tick_count: int=1):
+        return super().calculate_score(game, tick_count)
+    
+class NeatEvaluatorVT2(NeatEvaluatorVTScheme):
+    def __init__(self, controller: KimDzongNeatJuniorController, runner: runner.Runner, cumulative: bool):
+        super().__init__(controller, runner, cumulative)
+        self.bonuses = {
+            'survival': 3,
+            'health': 2.5,
+            'enemy': -0.08,
+            'death': -150,
+            'weapon': 0.2,
+            'knife': -0.1,
+            'sword': 0.1,
+            'axe': 0.11,
+            'bow':0.3,
+            'amulet':0.11,
+            'scroll':0.06,
+            'distance':75,
         }
 
     @override

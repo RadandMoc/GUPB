@@ -1,4 +1,5 @@
 import random as classic_random
+from statistics import mean, median
 
 import neat
 
@@ -56,18 +57,21 @@ def get_evaluator(name, neat_controller, game_runner) -> NeatEvaluator:
 def eval_genomes_with_evaluator(evaluator_name, genomes, config):
     for genome_id, genome in genomes:
         # print(genome_id, genome)
-        genome.fitness = 0
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-        neat_controller = KimDzongNeatJuniorController(net=net)
+        scores = []
+        for i in range(5):
+            genome.fitness = 0
+            net = neat.nn.FeedForwardNetwork.create(genome, config)
+            neat_controller = KimDzongNeatJuniorController(net=net)
 
-        game_config = default_game_configuration(neat_controller)
-        game_runner = runner.Runner(game_config)
-        game_runner.run()
+            game_config = default_game_configuration(neat_controller)
+            game_runner = runner.Runner(game_config)
+            game_runner.run()
 
-        evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
+            evaluator = get_evaluator(evaluator_name, neat_controller, game_runner)
 
-        genome.fitness += evaluator.calculate_score()
-        # print(genome_id, genome.fitness)
+            scores += [evaluator.calculate_score()]
+            # print(genome_id, genome.fitness)
+        genome.fitness = median(scores)
 
 
 def check_if_alive(controller, game):
@@ -76,6 +80,7 @@ def check_if_alive(controller, game):
             return champion.alive
 
 
+# to co tick to chyba nic nie zmienia bo genome.fitness jest uzywany tylko przy krzyzowaniu, a to jest juz po grze
 def eval_genomes_with_by_tick(evaluator_name, genomes, config, ticks_per_update=1):
     for genome_id, genome in genomes:
         genome.fitness = 0

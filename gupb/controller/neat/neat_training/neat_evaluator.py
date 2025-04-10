@@ -9,10 +9,14 @@ from gupb.model.coordinates import Coords
 
 
 class NeatEvaluator:
+    # controller_number = 1
+
     def __init__(self, controller: KimDzongNeatJuniorController, runner: runner.Runner, cumulative: bool):
         self.controller = controller
         self.runner = runner
         self.cumulative = cumulative
+        # print(f"Controller number: {self.controller_number}")
+        # NeatEvaluator.controller_number += 1
 
     # @abstractmethod
     # def calculate_score(self,game: games.Game=None, tick_count: int=0):
@@ -29,7 +33,8 @@ class NeatEvaluatorV1(NeatEvaluator):
 
     @override
     def calculate_score(self):
-        score = self.controller.fitness + self.controller.ticks_survived_with_mist
+        score = self.controller.fitness
+        # print(score)
         return score
 
 class NeatEvaluatorVT1(NeatEvaluator):

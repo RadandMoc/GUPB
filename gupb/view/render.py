@@ -1,18 +1,14 @@
 from __future__ import annotations
-import os
+
 import itertools
-from typing import Any, Optional, TypeVar, Tuple
+import os
+from typing import Any, Optional, Tuple, TypeVar
 
 import pygame
 import pygame.freetype
 
 from gupb.controller import keyboard
-from gupb.model import characters
-from gupb.model import consumables
-from gupb.model import effects
-from gupb.model import games
-from gupb.model import tiles
-from gupb.model import weapons
+from gupb.model import characters, consumables, effects, games, tiles, weapons
 
 pygame.init()
 
@@ -74,6 +70,7 @@ class SpriteRepository:
             characters.Tabard.VIOLET: load_sprite('characters', 'champion_violet', BLACK),
             characters.Tabard.WHITE: load_sprite('characters', 'champion_white', BLACK),
             characters.Tabard.YELLOW: load_sprite('characters', 'champion_yellow', BLACK),
+            characters.Tabard.MCFACE: load_sprite('characters', 'mc_face', BLACK),
 
             effects.Mist: load_sprite('effects', 'mist', BLACK),
             effects.WeaponCut: load_sprite('effects', 'blood', BLACK),
@@ -102,6 +99,7 @@ class SpriteRepository:
                     characters.Tabard.VIOLET,
                     characters.Tabard.WHITE,
                     characters.Tabard.YELLOW,
+                    characters.Tabard.MCFACE
                 ],
                 [
                     characters.Facing.RIGHT,

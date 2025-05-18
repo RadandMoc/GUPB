@@ -1,18 +1,15 @@
 from __future__ import annotations
+
+import logging
+import random
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-import logging
-import random
-from typing import NamedTuple, Optional, Dict
+from typing import Dict, NamedTuple, Optional
 
 from gupb import controller
 from gupb.logger import core as logger_core
-from gupb.model import arenas
-from gupb.model import coordinates
-from gupb.model import consumables
-from gupb.model import tiles
-from gupb.model import weapons
+from gupb.model import arenas, consumables, coordinates, tiles, weapons
 
 verbose_logger = logging.getLogger('verbose')
 
@@ -55,6 +52,7 @@ class Tabard(Enum):
     MONGOL = 'Mongolek'
     PIKACHU = 'Pikachu'
     R2D2 = 'R2D2'
+    MCFACE='MCFACE'
 
 
 class Champion:

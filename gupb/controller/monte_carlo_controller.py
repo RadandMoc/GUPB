@@ -46,45 +46,67 @@ class MCTile:
 
 class HashableChampionKnowledge(NamedTuple):
     position: coordinates.Coords
-    visible_tiles: frozenset[tuple[coordinates.Coords, tiles.TileDescription]]
+    facing: characters.Facing
+    visible_tiles: frozenset[MCTile]
 
     @staticmethod
     def to_hashable(
         knowledge: characters.ChampionKnowledge,
     ) -> "HashableChampionKnowledge":
-        def make_tile_hashable(tile: tiles.TileDescription) -> tiles.TileDescription:
-            # Przekształcamy 'effects' z listy na tuple (inne pola zostają takie same)
-            if isinstance(tile.effects, list):
-                tile = tile._replace(effects=tuple(tile.effects))
-            return tile
-
-        # Zamieniamy każdy TileDescription na wersję z hashowalnym 'effects'
-        hashable_visible_tiles = frozenset(
-            (coord, make_tile_hashable(tile))
-            for coord, tile in knowledge.visible_tiles.items()
-        )
+        mc_tiles = get_closest_tiles(knowledge)
+        me = knowledge.visible_tiles.get(knowledge.position).character
+        if me is not None:
+            # Czy to oks?
+            facing = me.facing
+        else:
+            facing = None
 
         return HashableChampionKnowledge(
+            facing=facing,
             position=knowledge.position,
-            no_of_champions_alive=knowledge.no_of_champions_alive,
-            visible_tiles=hashable_visible_tiles,
+            visible_tiles=frozenset(mc_tiles),
         )
+
+
+def get_closest_tiles(
+    champ_knowledge: characters.ChampionKnowledge, count: int = 10
+) -> tuple[MCTile, ...]:
+    pos = champ_knowledge.position
+    mc_tiles = [MCTile.create(item) for item in champ_knowledge.visible_tiles.items()]
+    mc_tiles.sort(
+        key=lambda tile: abs(tile.coords[0] - pos[0]) + abs(tile.coords[1] - pos[1])
+    )
+
+    return tuple(mc_tiles[: min(len(mc_tiles), count)])
 
 
 # noinspection PyUnusedLocal
 # noinspection PyMethodMayBeStatic
 class MonteCarloController(controller.Controller):
-    def __init__(self, first_name: str = "...", with_policy=False):
+    def __init__(
+        self,
+        first_name: str = "...",
+        with_policy=False,
+        training=False,
+        model_name="mc_policy.pkl",
+        save_model=False,
+    ):
+        self.save_model = save_model
         self.first_name: str = first_name
-        self.eps = 0.3
-        self.gamma = 1.0
+        self.eps = 0.25
+        self.gamma = 0.95
         self.states_history: list[HashableChampionKnowledge] = []
         self.action_history: list[characters.Action] = []
+        self.training = training
+        self.model_name = model_name
+
+        self.visited_positions = set()
 
         if not with_policy:
             self.q: dict[tuple[HashableChampionKnowledge, characters.Action], float] = (
                 {}
             )
+
             self.policy: dict[
                 HashableChampionKnowledge, dict[characters.Action, float]
             ] = {}
@@ -98,6 +120,13 @@ class MonteCarloController(controller.Controller):
         else:
             self.load_policy()
 
+        for (state, action), count in sorted(
+            self.returns_sum.items(),
+            key=lambda item: item[1],
+        ):
+            value = self.returns_sum[(state, action)]
+            print(f"action: {action}, count: {count}, value: {value}")
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, MonteCarloController):
             return self.first_name == other.first_name
@@ -107,6 +136,7 @@ class MonteCarloController(controller.Controller):
         return hash(self.first_name)
 
     def decide(self, knowledge: characters.ChampionKnowledge) -> characters.Action:
+        self.visited_positions.add(knowledge.position)
         knowledge = HashableChampionKnowledge.to_hashable(knowledge)
         action = self.choose_action_mc(knowledge)
 
@@ -122,7 +152,8 @@ class MonteCarloController(controller.Controller):
         self.states_history.clear()
         self.action_history.clear()
 
-        self.save_policy()
+        if self.training and game_no % 3 == 0 and game_no != 0 and self.save_model:
+            self.save_policy()
 
     @property
     def name(self) -> str:
@@ -130,7 +161,7 @@ class MonteCarloController(controller.Controller):
 
     @property
     def preferred_tabard(self) -> characters.Tabard:
-        return characters.Tabard.WHITE
+        return characters.Tabard.MCFACE
 
     def choose_action_mc(
         self, knowledge: HashableChampionKnowledge
@@ -142,15 +173,31 @@ class MonteCarloController(controller.Controller):
         actions = list(action_probs.keys())
         probs = list(action_probs.values())
 
-        return random.choices(actions, weights=probs)[0]
+        if self.training:
+            actions = list(action_probs.keys())
+            probs = list(action_probs.values())
+            return random.choices(actions, weights=probs)[0]
+        else:
+            return max(action_probs.items(), key=lambda item: item[1])[0]
 
     def calculate_praise(self, score):
         termination = len(self.states_history)
+        stagnation_counter = 0
 
         for t, (state, action) in enumerate(
             zip(self.states_history, self.action_history)
         ):
             g_t = score * (self.gamma ** (termination - t - 1))
+
+            if (
+                t > 0
+                and self.states_history[t].position
+                == self.states_history[t - 1].position
+            ):
+                stagnation_counter += 1
+                g_t -= stagnation_counter * 0.5
+            else:
+                stagnation_counter = 0
 
             key = (state, action)
             self.returns_sum[key] = self.returns_sum.get(key, 0.0) + g_t
@@ -180,26 +227,60 @@ class MonteCarloController(controller.Controller):
                 else:
                     self.policy[state][a] = self.eps / n
 
-    def save_policy(self, filename: str = "mc_policy.pkl"):
+    def save_policy(self):
+        filename = self.model_name
+        q_serializable = {
+            (state, action.name): value for (state, action), value in self.q.items()
+        }
+        policy_serializable = {
+            state: {action.name: prob for action, prob in actions.items()}
+            for state, actions in self.policy.items()
+        }
+        returns_sum_serializable = {
+            (state, action.name): value
+            for (state, action), value in self.returns_sum.items()
+        }
+        returns_count_serializable = {
+            (state, action.name): value
+            for (state, action), value in self.returns_count.items()
+        }
+
         with open(filename, "wb") as f:
             pickle.dump(
                 {
-                    "q": self.q,
-                    "policy": self.policy,
-                    "returns_sum": self.returns_sum,
-                    "returns_count": self.returns_count,
+                    "q": q_serializable,
+                    "policy": policy_serializable,
+                    "returns_sum": returns_sum_serializable,
+                    "returns_count": returns_count_serializable,
                 },
                 f,
             )
 
-    def load_policy(self, filename: str = "mc_policy.pkl"):
+    def load_policy(self):
+        filename = self.model_name
         if not os.path.exists(filename):
             print(f"Policy file {filename} not found.")
             return
 
         with open(filename, "rb") as f:
             data = pickle.load(f)
-            self.q = data["q"]
-            self.policy = data["policy"]
-            self.returns_sum = data["returns_sum"]
-            self.returns_count = data["returns_count"]
+
+            self.q = {
+                (state, characters.Action[action_name]): value
+                for (state, action_name), value in data["q"].items()
+            }
+            self.policy = {
+                state: {
+                    characters.Action[action_name]: prob
+                    for action_name, prob in actions.items()
+                }
+                for state, actions in data["policy"].items()
+            }
+            self.returns_sum = {
+                (state, characters.Action[action_name]): value
+                for (state, action_name), value in data["returns_sum"].items()
+            }
+            self.returns_count = {
+                (state, characters.Action[action_name]): value
+                for (state, action_name), value in data["returns_count"].items()
+            }
